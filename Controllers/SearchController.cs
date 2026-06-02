@@ -20,7 +20,6 @@ namespace VulnerableApp.Controllers
             if (string.IsNullOrEmpty(search))
                 return View(new List<User>());
 
-            // AQUÍ ESTÁ LA VULNERABILIDAD: Concatenación directa de strings
             string query = "SELECT * FROM Users WHERE Username LIKE '%" + search + "%'";
             var users = _db.Users.FromSqlRaw(query).ToList();
 

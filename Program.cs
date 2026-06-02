@@ -10,6 +10,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 2. CONSTRUYE LA APLICACIÓN
+builder.Services.AddSession();
 var app = builder.Build();
 
 // 3. CONFIGURA EL PIPELINE HTTP (Middlewares)
@@ -21,6 +22,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseSession();
 app.UseAuthorization();
 app.MapStaticAssets();
 
