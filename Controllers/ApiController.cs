@@ -12,19 +12,20 @@ namespace VulnerableApp.Controllers
         public ApiController(AppDbContext db) { _db = db; }
 
         [HttpGet("user/{id}")]
-        public IActionResult GetUser(int id)
+        public IActionResult GetUser(int id) 
         {
-            var user = _db.Users.Find(id);
-            if (user == null) return NotFound();
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            // Corrección: Usamos StatusCode manual en lugar de Unauthorized/Forbid
+            if (!currentUserId.HasValue)
+                return StatusCode(401, "No autenticado. Por favor inicia sesión.");
 
-            return Ok(new
-            {
-                user.Id,
-                user.Username,
-                user.Email,
-                user.Balance,
-                user.Password // VULNERABILIDAD: Exponiendo la contraseña en texto plano
-            });
+            if (id != currentUserId.Value)
+                return StatusCode(403, "Acceso denegado. No puedes ver datos de otros usuarios.");
+
+            var user = _db.Users.Find(id); 
+            if (user == null) return NotFound(); 
+
+            return Ok(new { user.Id, user.Username, user.Email });
         }
 
         [HttpGet("users")]

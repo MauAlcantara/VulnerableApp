@@ -7,8 +7,7 @@
 </form>
 
 <div id="comments">
-    @foreach (var comment in Model ?? new List<string>())
-    {
-        <div class="comment">@Html.Raw(comment)</div>
-    }
+@foreach (var comment in Model ?? new List<string>()) 
+{
+    <div class="comment">@Html.Encode(comment)</div> }
 </div>
