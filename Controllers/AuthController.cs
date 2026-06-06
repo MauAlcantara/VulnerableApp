@@ -18,27 +18,21 @@ namespace VulnerableApp.Controllers
         [HttpPost]
         public ActionResult Login(string username, string password)
         {
-            // Vulnerabilidad 1: Credenciales predeterminadas quemadas en código
-            if (username == "admin" && password == "admin")
+            // Búsqueda segura con LINQ
+            var user = _db.Users.FirstOrDefault(u => u.Username == username);
+
+            // Validación doble (hash o texto plano para los usuarios semilla)
+            bool isPasswordValid = user != null && (user.Password == password || BCrypt.Net.BCrypt.Verify(password, user.PasswordHash));
+
+            if (user == null || !isPasswordValid)
             {
-                HttpContext.Session.SetString("User", username);
-                HttpContext.Session.SetInt32("UserId", 1);
-                return RedirectToAction("Dashboard");
+                ViewBag.Error = "Credenciales inválidas";
+                return View();
             }
 
-            // Vulnerabilidad 2: Concatenación directa (SQL Injection)
-            string query = "SELECT * FROM Users WHERE Username = '" + username + "' AND Password = '" + password + "'";
-            var user = _db.Users.FromSqlRaw(query).FirstOrDefault();
-
-            if (user != null)
-            {
-                HttpContext.Session.SetString("User", user.Username);
-                HttpContext.Session.SetInt32("UserId", user.Id);
-                return RedirectToAction("Dashboard");
-            }
-
-            ViewBag.Error = "Usuario/contraseña inválido";
-            return View();
+            HttpContext.Session.SetString("User", user.Username);
+            HttpContext.Session.SetInt32("UserId", user.Id);
+            return RedirectToAction("Dashboard");
         }
 
         public ActionResult Dashboard()
