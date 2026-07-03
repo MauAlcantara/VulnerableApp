@@ -15,7 +15,7 @@ namespace VulnerableApp.Data
                 .HasPrecision(18, 2);
 
             // 2. Solucionar el Error usando una fecha estática y fija
-            var fixedDate = new DateTime(2026, 1, 1, 12, 0, 0);
+            var fixedDate = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
             modelBuilder.Entity<User>().HasData(
                 new User
