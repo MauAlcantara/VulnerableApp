@@ -32,6 +32,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<VulnerableApp.Middlewares.GlobalLoggingMiddleware>();
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
