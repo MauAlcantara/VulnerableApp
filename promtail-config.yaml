@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# positions.yaml: Recuerda en qué línea del .txt se quedó leyendo por si se reinicia el contenedor
+positions:
+  filename: /tmp/positions.yaml 
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: vulnerableapp_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: vulnerableapp
+          app: VulnerableApp # Label estática solicitada
+          __path__: /var/log/VulnerableApp/*.txt # Ruta configurada en el Bind Mount
+          
+    # RETO: Pipeline para asignar labels dinámicas (Security y Audit)
+    pipeline_stages:
+      - regex:
+          # Busca palabras clave en el log para identificar el tipo de evento
+          expression: '.*(?P<keyword>Auth\.Login|Auth\.Dashboard|Search\.Index).*'
+      - template:
+          source: category
+          # Si es Auth, es Security. Si es Search, es Audit.
+          template: '{{ if eq .keyword "Auth.Login" }}Security{{ else if eq .keyword "Auth.Dashboard" }}Security{{ else if eq .keyword "Search.Index" }}Audit{{ else }}General{{ end }}'
+      - labels:
+          category: # Se crea la label 'category' que Loki indexará
