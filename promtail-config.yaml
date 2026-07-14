@@ -2,9 +2,8 @@ server:
   http_listen_port: 9080
   grpc_listen_port: 0
 
-# positions.yaml: Recuerda en qué línea del .txt se quedó leyendo por si se reinicia el contenedor
 positions:
-  filename: /tmp/positions.yaml 
+  filename: /tmp/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
@@ -16,17 +15,27 @@ scrape_configs:
           - localhost
         labels:
           job: vulnerableapp
-          app: VulnerableApp # Label estática solicitada
-          __path__: /var/log/VulnerableApp/*.txt # Ruta configurada en el Bind Mount
+          # RETO: Etiqueta estática de entorno
+          environment: dev 
+          # PASO 3: Monitoreo de múltiples archivos usando comodines
+          __path__: /var/log/VulnerableApp/{log-*.txt,security-*.txt} 
           
-    # RETO: Pipeline para asignar labels dinámicas (Security y Audit)
+    # PASO 4 y RETO: Enriquecimiento dinámico de registros mediante labels
     pipeline_stages:
       - regex:
-          # Busca palabras clave en el log para identificar el tipo de evento
-          expression: '.*(?P<keyword>Auth\.Login|Auth\.Dashboard|Search\.Index).*'
+          # Busca palabras clave en el texto del log
+          expression: '.*(?P<keyword>Auth\.Login|Auth\.Dashboard|Search\.Index|Order\.Create).*'
+      
+      # Asigna la label 'category' (Application, Security, Audit)
       - template:
           source: category
-          # Si es Auth, es Security. Si es Search, es Audit.
-          template: '{{ if eq .keyword "Auth.Login" }}Security{{ else if eq .keyword "Auth.Dashboard" }}Security{{ else if eq .keyword "Search.Index" }}Audit{{ else }}General{{ end }}'
+          template: '{{ if eq .keyword "Auth.Login" }}Security{{ else if eq .keyword "Auth.Dashboard" }}Security{{ else if eq .keyword "Search.Index" }}Audit{{ else }}Application{{ end }}'
+      
+      # RETO: Asigna la label 'module' (authentication, orders, general)
+      - template:
+          source: module
+          template: '{{ if eq .keyword "Auth.Login" }}authentication{{ else if eq .keyword "Auth.Dashboard" }}authentication{{ else if eq .keyword "Order.Create" }}orders{{ else }}general{{ end }}'
+      
       - labels:
-          category: # Se crea la label 'category' que Loki indexará
+          category:
+          module:
