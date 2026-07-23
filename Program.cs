@@ -10,14 +10,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSession();
 
-// 2. CONFIGURA SERILOG 
+// 2. CONFIGURA SERILOG
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration) 
+    .ReadFrom.Configuration(builder.Configuration)
     .WriteTo.Console()
-    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day) 
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
     .WriteTo.Seq("http://localhost:5341")
-    .Enrich.FromLogContext() 
-    .Enrich.WithMachineName() 
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -33,6 +33,25 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseMiddleware<VulnerableApp.Middlewares.GlobalLoggingMiddleware>();
+
+// =========================================================================
+// MIDDLEWARE DE CABECERAS DE SEGURIDAD (CORRECCIÓN DAST OWASP ZAP)
+// =========================================================================
+app.Use(async (context, next) =>
+{
+    // 1. CSP (CWE-693 / Plugin 10038)
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;");
+
+    // 2. Anti-Clickjacking (CWE-1021 / Plugin 10020)[cite: 4]
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+
+    // 3. Anti MIME-Sniffing (CWE-693 / Plugin 10021)[cite: 4]
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+    await next();
+});
+
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
